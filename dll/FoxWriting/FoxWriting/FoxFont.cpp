@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "FoxFont.h"
 
 #include <cmath>
@@ -281,7 +281,7 @@ BOOL UploadTexturePixels(IDirect3DTexture8* texture, int width, int height, cons
     }
 
     D3DLOCKED_RECT lockedRect;
-    HRESULT lockResult = texture->LockRect(0, &lockedRect, nullptr, 0);
+    HRESULT lockResult = texture->LockRect(0, &lockedRect, NULL, 0);
     if (lockResult != D3D_OK)
     {
         return FALSE;
@@ -313,7 +313,7 @@ int Pad2(int n)
     int s = 0;
     while (n > 1)
     {
-        if (n % 1 == 1)
+        if (n % 2 == 1)
         {
             isA = true;
         }
