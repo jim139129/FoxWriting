@@ -179,24 +179,52 @@ BOOL FoxFont::SetFont(LPCWSTR fontName, DOUBLE size, INT style, const Gdiplus::F
 
     { // 创建 unicode 范围向量
         HDC hdc = ::CreateCompatibleDC(NULL);
-        Gdiplus::Graphics graphics(hdc);
-        LOGFONTW logFont;
-        mFont->GetLogFontW(&graphics, &logFont);
-        HFONT hFont = ::CreateFontIndirectW(&logFont);
-        //if (!hFont) return false;
-        ::SelectObject(hdc, hFont);
+        if (hdc)
+        {
+            Gdiplus::Graphics graphics(hdc);
+            LOGFONTW logFont;
+            HFONT hFont = NULL;
+            HGDIOBJ oldFont = NULL;
+            if (mFont->GetLogFontW(&graphics, &logFont) == Gdiplus::Ok)
+            {
+                hFont = ::CreateFontIndirectW(&logFont);
+                if (hFont)
+                {
+                    oldFont = ::SelectObject(hdc, hFont);
+                }
+            }
 
-        DWORD glyphSize = ::GetFontUnicodeRanges(hdc, NULL);
+            DWORD glyphSize = ::GetFontUnicodeRanges(hdc, NULL);
+            if (glyphSize >= sizeof(GLYPHSET))
+            {
+                std::vector<char> buffer(glyphSize);
+                GLYPHSET* gs = reinterpret_cast<GLYPHSET*>(&buffer[0]);
+                if (::GetFontUnicodeRanges(hdc, gs) != 0)
+                {
+                    for (DWORD r = 0; r < gs->cRanges; ++r)
+                    {
+                        mCharacterRange.push_back(std::make_pair(gs->ranges[r].wcLow, gs->ranges[r].wcLow + gs->ranges[r].cGlyphs));
+                    }
+                }
+            }
 
-        std::vector<char> buffer(glyphSize);
-        GLYPHSET *gs = (GLYPHSET*)(&buffer[0]);
-        ::GetFontUnicodeRanges(hdc, gs);
-        for (DWORD r = 0; r < gs->cRanges; ++r) {
-            mCharacterRange.push_back(std::make_pair(gs->ranges[r].wcLow, gs->ranges[r].wcLow + gs->ranges[r].cGlyphs));
+            if (oldFont)
+            {
+                ::SelectObject(hdc, oldFont);
+            }
+            if (hFont)
+            {
+                ::DeleteObject(hFont);
+            }
+            ::DeleteDC(hdc);
         }
+    }
 
-        DeleteObject(hFont);
-        ReleaseDC(NULL, hdc);
+    if (mCharacterRange.empty())
+    {
+        // 某些新系统/字体组合下，GetFontUnicodeRanges 可能返回 0。
+        // 回退到完整 BMP 范围，避免预加载逻辑直接失效。
+        mCharacterRange.push_back(std::make_pair(0, 0x10000));
     }
 
     return TRUE;
