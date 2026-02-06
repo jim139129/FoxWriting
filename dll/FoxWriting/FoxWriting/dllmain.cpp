@@ -1,4 +1,4 @@
-// dllmain.cpp : ¶¨Òå DLL Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
+// dllmain.cpp : å®šä¹‰ DLL åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
 #include "stdafx.h"
 #include "FoxWriting.h"
 
@@ -11,9 +11,19 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
         {
-            { // Ó¦¶Ô vs2015 ÄÚÁª sprintf µ¼ÖÂ d3d8.lib ÕÒ²»µ½ _sprintf µÄÎÊÌâ
-                char f__kInline[1];
-                sprintf(f__kInline, "");
+            HDC dc = GetDC(NULL);
+            if (dc)
+            {
+                xdpi = GetDeviceCaps(dc, LOGPIXELSX);
+                ydpi = GetDeviceCaps(dc, LOGPIXELSY);
+                ReleaseDC(NULL, dc);
+            }
+            else
+            {
+                xdpi = 96;
+                ydpi = 96;
+            }
+        break;
             }
 
             // Initializing GMAPI library
@@ -27,10 +37,10 @@ BOOL APIENTRY DllMain(HMODULE hModule,
                 return FALSE;
             }
 
-            // ³õÊ¼»¯ GDI+
+            // åˆå§‹åŒ– GDI+
             Gdiplus::GdiplusStartupInput gdiplusStartupInput;
             Gdiplus::GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, NULL);
-            // µÃµ½ÆÁÄ»ÃÜ¶È£¬ÓÃÀ´¼ÆËã pt <-> px
+            // å¾—åˆ°å±å¹•å¯†åº¦ï¼Œç”¨æ¥è®¡ç®— pt <-> px
             HDC dc = GetDC(0);
             xdpi = GetDeviceCaps(dc, LOGPIXELSX);
             ydpi = GetDeviceCaps(dc, LOGPIXELSY);
@@ -39,7 +49,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     case DLL_THREAD_DETACH:
         break;
     case DLL_PROCESS_DETACH:
-        // ÕâÀï²»ÄÜshutdown·ñÔòÓÎÏ·»á±ÀÀ££¬Ô­Òò²»Ã÷
+        // è¿™é‡Œä¸èƒ½shutdownå¦åˆ™æ¸¸æˆä¼šå´©æºƒï¼ŒåŸå› ä¸æ˜
         //Gdiplus::GdiplusShutdown(m_gdiplusToken);
         break;
     }
