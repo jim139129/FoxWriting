@@ -45,7 +45,7 @@ FoxFont::~FoxFont()
     }
     if (!mFontCollection && mFontFamily)
     {
-        delete mFontFamily; // ÕâÀï¿ÉÄÜµ¼ÖÂÄÚ´æĞ¹Â©
+        delete mFontFamily; // è¿™é‡Œå¯èƒ½å¯¼è‡´å†…å­˜æ³„æ¼
     }
     if (mFontCollection)
     {
@@ -80,13 +80,13 @@ FoxFont::~FoxFont()
         delete[] mBitmap4Measure;
     }
 
-    // ÊÍ·Å»º´æµÄtexture
+    // é‡Šæ”¾ç¼“å­˜çš„texture
     FreeCache();
 }
 
 void FoxFont::FreeCache()
 {
-    // ÊÍ·Å»º´æµÄtexture
+    // é‡Šæ”¾ç¼“å­˜çš„texture
     std::unordered_map<WCHAR, PFontTexture>::iterator it = mCaches.begin();
     while (it != mCaches.end())
     {
@@ -177,7 +177,7 @@ BOOL FoxFont::SetFont(LPCWSTR fontName, DOUBLE size, INT style, const Gdiplus::F
     mGraphics4Measure->SetTextRenderingHint(mSizeInPoint <= 15 ? Gdiplus::TextRenderingHintClearTypeGridFit : Gdiplus::TextRenderingHintAntiAliasGridFit);
     mGraphics4Measure->SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
 
-    { // ´´½¨ unicode ·¶Î§ÏòÁ¿
+    { // åˆ›å»º unicode èŒƒå›´å‘é‡
         HDC hdc = ::CreateCompatibleDC(NULL);
         Gdiplus::Graphics graphics(hdc);
         LOGFONTW logFont;
@@ -271,40 +271,37 @@ PFontTexture FoxFont::GetCharTexture(WCHAR c)
     return it->second;
 }
 
-typedef struct
+namespace
 {
-    bool stroke;
-    int w, h;
-    BYTE* bitmap;
-    int count;
-} FILLDATA, *PFILLDATA;
-
-VOID Fill(D3DXVECTOR4* pOut, D3DXVECTOR2* pTexCoord, D3DXVECTOR2* pTexelSize, LPVOID pData)
+BOOL UploadTexturePixels(IDirect3DTexture8* texture, int width, int height, const BYTE* bitmap)
 {
-    PFILLDATA data = (PFILLDATA)pData;
-    int x = (int)(pTexCoord->x * data->w);
-    int y = (int)(pTexCoord->y * data->h);
-    int index = (y * data->w + x) * 4;
-
-    if (data->stroke)
+    if (!texture || !bitmap || width <= 0 || height <= 0)
     {
-        pOut->z = data->bitmap[index + 2] / 255.0f;
-        pOut->y = data->bitmap[index + 1] / 255.0f;
-        pOut->x = data->bitmap[index] / 255.0f;
-        pOut->w = data->bitmap[index + 3] / 255.0f;
-    }
-    else
-    {
-        pOut->z = 1.0f;
-        pOut->y = 1.0f;
-        pOut->x = 1.0f;
-        pOut->w = (data->bitmap[index] + data->bitmap[index + 1] + data->bitmap[index + 2]) / 255.0f / 3;
+        return FALSE;
     }
 
-    data->count++;
+    D3DLOCKED_RECT lockedRect;
+    HRESULT lockResult = texture->LockRect(0, &lockedRect, nullptr, 0);
+    if (lockResult != D3D_OK)
+    {
+        return FALSE;
+    }
+
+    const int srcPitch = width * 4;
+    BYTE* dst = static_cast<BYTE*>(lockedRect.pBits);
+
+    for (int y = 0; y < height; ++y)
+    {
+        memcpy(dst + y * lockedRect.Pitch, bitmap + y * srcPitch, srcPitch);
+    }
+
+    texture->UnlockRect(0);
+
+    return TRUE;
+}
 }
 
-// 2µÄÖ¸Êı´ÎÃİ¶ÔÆë
+// 2çš„æŒ‡æ•°æ¬¡å¹‚å¯¹é½
 int Pad2(int n)
 {
     if (n == 1)
@@ -337,7 +334,7 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
     PFontTexture texture = new FontTexture;
     ZeroMemory(texture, sizeof(FontTexture));
 
-    // ÏÈ¼ÆËãÎÄ×Ö³ß´ç
+    // å…ˆè®¡ç®—æ–‡å­—å°ºå¯¸
     Gdiplus::RectF stringRect;
     MeasureChar(c, &stringRect);
 
@@ -366,24 +363,26 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
     texture->fontXOffset = -stringRect.GetLeft();
     texture->fontYOffset = -stringRect.GetTop();
 
-    // ×¼±¸bitmap
-    int size = texture->textureWidth * texture->textureHeight * 4;
-    if(size <= 0)
+    LPDIRECT3DTEXTURE8 t = nullptr;
+    HRESULT rlt = workbench.device->CreateTexture(
+        texture->textureWidth,
+        texture->textureHeight,
+        1,
+        0,
+        D3DFMT_A8R8G8B8,
+        D3DPOOL_MANAGED,
+        &t);
     {
         delete texture;
         return NULL;
     }
 
-    BYTE* bitmap = new BYTE[size];
-    if (bitmap == NULL)
-    {
-        delete texture;
-        return NULL;
+    if (!UploadTexturePixels(t, texture->textureWidth, texture->textureHeight, bitmap))
     }
 
     CreateTextBitmap(c, texture->textureWidth, texture->textureHeight, texture->xOffset, texture->yOffset, mStroke, bitmap);
 
-    // ´´½¨ Texture
+    // åˆ›å»º Texture
     LPDIRECT3DTEXTURE8 t;
     HRESULT rlt = D3DXCreateTexture(workbench.device, texture->textureWidth, texture->textureHeight, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8,
                                     D3DPOOL_DEFAULT, &t);
@@ -398,7 +397,7 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
 
     FILLDATA bitmapData = {mStroke , texture->textureWidth, texture->textureHeight, bitmap, 0};
 
-    // Ìî³ä Texture
+    // å¡«å…… Texture
     rlt = D3DXFillTexture(texture->texture, Fill, &bitmapData);
     if (rlt != D3D_OK)
     {

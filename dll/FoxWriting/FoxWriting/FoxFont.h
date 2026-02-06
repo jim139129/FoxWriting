@@ -1,5 +1,5 @@
 /*
-	×ÖÌåÀà£¬´¢´æÁËÒ»¸ö×ÖÌå¶ÔÓ¦µÄÅäÖÃÒÔ¼°ÌùÍ¼»º´æ
+	à£¬Ò»Ó¦Ô¼Í¼
 */
 
 #ifndef __FOXFONT_H__
@@ -11,8 +11,6 @@
 
 #include <d3d8.h>
 #pragma comment (lib, "d3d8.lib")
-#include <d3dx8.h>
-#pragma comment (lib, "d3dx8.lib")
 
 Gdiplus::REAL Point2Pixel(Gdiplus::REAL pt);
 
@@ -62,22 +60,22 @@ public:
     FoxFont();
     ~FoxFont();
 
-    Gdiplus::REAL mSizeInPoint; // ×ÖºÅ pt
-    Gdiplus::REAL mSizeInWorld; // ×ÖºÅ px
+    Gdiplus::REAL mSizeInPoint; // Öº pt
+    Gdiplus::REAL mSizeInWorld; // Öº px
 
-    // ×ÖÌåÆ«ÒÆ
+    // Æ«
     DOUBLE mXOffset;
     DOUBLE mYOffset;
 
     bool mStroke;
 
-    // ÓÃÒ»¸ö×ÖÌåºÍÏàÓ¦²ÎÊı³õÊ¼»¯¸Ã×ÖÌåÀà
+    // Ò»Ó¦Ê¼
     BOOL SetFont(LPCWSTR fontName, DOUBLE size, INT style, const Gdiplus::FontCollection* fontCollection = NULL);
     BOOL SetFontFile(LPCWSTR ttf, DOUBLE size, INT style);
 
     PFontTexture GetCharTexture(WCHAR c);
 
-    // ¼ÆËãµ¥¸ö×Ö·ûµÄ³ß´ç
+    // ãµ¥Ö·Ä³ß´
     BOOL MeasureChar(WCHAR c, Gdiplus::RectF* bound);
 
     void SetOffset(DOUBLE xOffset, DOUBLE yOffset);
