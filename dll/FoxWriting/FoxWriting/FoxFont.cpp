@@ -374,7 +374,7 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
     ZeroMemory(bitmap, bitmapSize);
     CreateTextBitmap(c, texture->textureWidth, texture->textureHeight, texture->xOffset, texture->yOffset, mStroke, bitmap);
 
-    LPDIRECT3DTEXTURE8 t = NULL;
+    LPDIRECT3DTEXTURE8 t = nullptr;
     HRESULT rlt = workbench.device->CreateTexture(
         texture->textureWidth,
         texture->textureHeight,
