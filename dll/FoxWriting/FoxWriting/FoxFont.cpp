@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "FoxFont.h"
 
 #include <cmath>
@@ -281,7 +281,7 @@ BOOL UploadTexturePixels(IDirect3DTexture8* texture, int width, int height, cons
     }
 
     D3DLOCKED_RECT lockedRect;
-    HRESULT lockResult = texture->LockRect(0, &lockedRect, nullptr, 0);
+    HRESULT lockResult = texture->LockRect(0, &lockedRect, NULL, 0);
     if (lockResult != D3D_OK)
     {
         return FALSE;
@@ -313,7 +313,7 @@ int Pad2(int n)
     int s = 0;
     while (n > 1)
     {
-        if (n % 1 == 1)
+        if (n % 2 == 1)
         {
             isA = true;
         }
@@ -363,7 +363,18 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
     texture->fontXOffset = -stringRect.GetLeft();
     texture->fontYOffset = -stringRect.GetTop();
 
-    LPDIRECT3DTEXTURE8 t = nullptr;
+    const int bitmapSize = texture->textureWidth * texture->textureHeight * 4;
+    BYTE* bitmap = new BYTE[bitmapSize];
+    if (!bitmap)
+    {
+        delete texture;
+        return NULL;
+    }
+
+    ZeroMemory(bitmap, bitmapSize);
+    CreateTextBitmap(c, texture->textureWidth, texture->textureHeight, texture->xOffset, texture->yOffset, mStroke, bitmap);
+
+    LPDIRECT3DTEXTURE8 t = NULL;
     HRESULT rlt = workbench.device->CreateTexture(
         texture->textureWidth,
         texture->textureHeight,
@@ -372,20 +383,6 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
         D3DFMT_A8R8G8B8,
         D3DPOOL_MANAGED,
         &t);
-    {
-        delete texture;
-        return NULL;
-    }
-
-    if (!UploadTexturePixels(t, texture->textureWidth, texture->textureHeight, bitmap))
-    }
-
-    CreateTextBitmap(c, texture->textureWidth, texture->textureHeight, texture->xOffset, texture->yOffset, mStroke, bitmap);
-
-    // 创建 Texture
-    LPDIRECT3DTEXTURE8 t;
-    HRESULT rlt = D3DXCreateTexture(workbench.device, texture->textureWidth, texture->textureHeight, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8,
-                                    D3DPOOL_DEFAULT, &t);
     if (rlt != D3D_OK)
     {
         delete[] bitmap;
@@ -393,19 +390,15 @@ PFontTexture FoxFont::GenerateCharTexture(const WCHAR c)
         return NULL;
     }
 
-    texture->texture = t;
-
-    FILLDATA bitmapData = {mStroke , texture->textureWidth, texture->textureHeight, bitmap, 0};
-
-    // 填充 Texture
-    rlt = D3DXFillTexture(texture->texture, Fill, &bitmapData);
-    if (rlt != D3D_OK)
+    if (!UploadTexturePixels(t, texture->textureWidth, texture->textureHeight, bitmap))
     {
         t->Release();
         delete[] bitmap;
         delete texture;
         return NULL;
     }
+
+    texture->texture = t;
 
     delete[] bitmap;
 
